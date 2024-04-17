@@ -4,24 +4,25 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/location_model.dart';
 import '../models/weather_model.dart';
 
 class WeatherService {
   // ignore: constant_identifier_names
-  static const BASE_URL = 'http://api.openweathermap.org/data/2.5/weather';
+  static const BASE_URL = 'http://dataservice.accuweather.com/';
   final String apiKey;
 
   WeatherService(this.apiKey);
 
-  Future<Weather> getWeather(double lat, double lon) async {
+  Future<WeatherModel> getWeather(String locationKey) async {
     final response = await http.get(
       Uri.parse(
-        '$BASE_URL?lat=$lat&lon=$lon&APPID=$apiKey&units=metric&lang=pt_br',
+        '${BASE_URL}forecasts/v1/daily/5day/$locationKey?apikey=$apiKey&language=pt-br&metric=true',
       ),
     );
 
     if (response.statusCode == 200) {
-      return Weather.fromJson(response.body);
+      return WeatherModel.fromJson(response.body);
     }
 
     throw Exception('Failed to load data');
@@ -50,6 +51,26 @@ class WeatherService {
         location.first.latitude,
         location.first.longitude,
       );
+    } catch (e) {
+      log(e.toString());
+
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<LocationModel> getLocationKey(double lat, double lon) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '${BASE_URL}locations/v1/cities/geoposition/search?apikey=$apiKey&q=$lat%2C$lon&language=pt-BR',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return LocationModel.fromJson(response.body);
+      }
+
+      throw Exception('Failed to load data');
     } catch (e) {
       log(e.toString());
 

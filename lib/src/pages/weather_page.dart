@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 import '../../secrets.dart';
 import '../mixins/snackbars.dart';
+import '../models/location_model.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
-import 'weather_utils_methods.dart';
 
 part 'custom_fab_animator.dart';
 
@@ -22,7 +21,8 @@ class _WeatherPageState extends State<WeatherPage> with CustomSnackBar {
   final searchController = TextEditingController();
   final searchFocus = FocusNode();
 
-  Weather? _weather;
+  WeatherModel? _weather;
+  LocationModel? _location;
 
   Future<void> _fetchWeatherByCity(String cityName) async {
     if (cityName.isEmpty) {
@@ -38,13 +38,15 @@ class _WeatherPageState extends State<WeatherPage> with CustomSnackBar {
 
     try {
       final coordinates = await _weatherService.getPositionByCity(cityName);
-      final weather = await _weatherService.getWeather(
+      final location = await _weatherService.getLocationKey(
         coordinates.$1,
         coordinates.$2,
       );
+      final weather = await _weatherService.getWeather(location.key);
 
       setState(() {
         _weather = weather;
+        _location = location;
       });
     } catch (e) {
       showSnackBar('Não foi possivel buscar pela cidade $cityName');
@@ -59,13 +61,15 @@ class _WeatherPageState extends State<WeatherPage> with CustomSnackBar {
 
     try {
       final coordinates = await _weatherService.getCurrentCity();
-      final weather = await _weatherService.getWeather(
+      final location = await _weatherService.getLocationKey(
         coordinates.$1,
         coordinates.$2,
       );
+      final weather = await _weatherService.getWeather(location.key);
 
       setState(() {
         _weather = weather;
+        _location = location;
       });
     } catch (e) {
       showSnackBar('Não foi possivel buscar sua localização');
@@ -99,19 +103,19 @@ class _WeatherPageState extends State<WeatherPage> with CustomSnackBar {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  _weather?.cityName ?? 'Buscando cidade...',
+                  _location?.localizedName ?? 'Buscando cidade...',
                   style: const TextStyle(
                     fontSize: 24,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Lottie.asset(
-                  WeatherUtilsMethods.getWeatherAnimation(
-                    _weather?.mainCondition,
-                    _weather?.sunrise,
-                    _weather?.sunset,
-                  ),
-                ),
+                // Lottie.asset(
+                //   WeatherUtilsMethods.getWeatherAnimation(
+                //     _weather?.mainCondition,
+                //     _weather?.sunrise,
+                //     _weather?.sunset,
+                //   ),
+                // ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -120,12 +124,15 @@ class _WeatherPageState extends State<WeatherPage> with CustomSnackBar {
                   ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    color: (_weather?.temperature ?? 0) >= 20
+                    color: (_weather?.dailyForecast.first.temperature.minimum
+                                    .value ??
+                                0) >=
+                            20
                         ? Theme.of(context).colorScheme.tertiaryContainer
                         : Theme.of(context).colorScheme.primaryContainer,
                   ),
                   child: Text(
-                    '${(_weather?.temperature ?? 0).round()}°C',
+                    '${(_weather?.dailyForecast.first.temperature.minimum.value ?? 0).round()}°C',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -134,7 +141,8 @@ class _WeatherPageState extends State<WeatherPage> with CustomSnackBar {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _weather?.mainCondition.name ?? 'Buscando dados...',
+                  _weather?.dailyForecast.first.day.iconPhrase ??
+                      'Buscando dados...',
                   style: const TextStyle(
                     fontSize: 24,
                   ),
@@ -175,7 +183,7 @@ class _WeatherPageState extends State<WeatherPage> with CustomSnackBar {
                   onPressed: () {
                     setState(() {
                       isSearchMode = true;
-                      searchFocus.requestFocus();
+                      // searchFocus.requestFocus();
                     });
                   },
                   label: const Text(

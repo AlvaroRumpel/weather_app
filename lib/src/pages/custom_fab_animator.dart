@@ -2,8 +2,11 @@ part of 'weather_page.dart';
 
 class _CustomFabAnimatior extends FloatingActionButtonAnimator {
   @override
-  Offset getOffset(
-      {required Offset begin, required Offset end, required double progress}) {
+  Offset getOffset({
+    required Offset begin,
+    required Offset end,
+    required double progress,
+  }) {
     return Offset.lerp(begin, end, progress) ?? begin;
   }
 
